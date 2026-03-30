@@ -5,8 +5,8 @@
 }
 
 /* ─── Responsive visibility ─── */
-.desktop-only { display: block; }
-.mobile-only  { display: none;  }
+/* Do NOT set display:block here — it overrides display:grid/flex on children */
+.mobile-only { display: none; }
 
 @media (max-width: 768px) {
   .desktop-only { display: none !important; }
