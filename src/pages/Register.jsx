@@ -22,19 +22,25 @@ export default function Register() {
     setLoading(true);
     try {
       const cred = await createUserWithEmailAndPassword(auth, email, password);
-      await setDoc(doc(db, 'users', cred.user.uid), {
-        uid: cred.user.uid,
-        email,
-        name,
-        role: 'employee',
-        createdAt: serverTimestamp(),
-      });
+      try {
+        await setDoc(doc(db, 'users', cred.user.uid), {
+          uid: cred.user.uid,
+          email,
+          name,
+          role: 'employee',
+          createdAt: serverTimestamp(),
+        });
+      } catch (firestoreErr) {
+        setError(`Account created but profile save failed: ${firestoreErr.message}. Contact your admin.`);
+        setLoading(false);
+        return;
+      }
       navigate('/employee');
     } catch (err) {
       if (err.code === 'auth/email-already-in-use') {
         setError('Email already registered. Please log in.');
       } else {
-        setError('Registration failed. Please try again.');
+        setError(`Registration failed: ${err.message}`);
       }
     } finally {
       setLoading(false);

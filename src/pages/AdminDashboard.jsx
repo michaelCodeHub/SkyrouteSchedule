@@ -130,6 +130,7 @@ export default function AdminDashboard() {
             <button onClick={goToCurrentWeek} className="btn-today">Today</button>
             <span className="week-label">{weekLabel}</span>
             <button onClick={nextWeek} className="btn-nav">Next ›</button>
+            <button onClick={fetchEmployees} className="btn-nav" title="Refresh employee list">↻ Employees</button>
           </div>
         </div>
 
