@@ -18,7 +18,7 @@ export default function Header() {
     <>
       <header className="header">
         <div className="header-brand">
-          <img src="/logo.jpeg" alt="SkyRoute" className="header-logo-img" />
+          <img src="/logo.png" alt="SkyRoute" className="header-logo-img" />
         </div>
         <nav className="header-nav">
           {userProfile?.role === 'admin' && (

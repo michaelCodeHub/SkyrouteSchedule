@@ -51,7 +51,7 @@ export default function Register() {
     <div className="auth-bg">
       <div className="auth-card">
         <div className="auth-header">
-          <img src="/logo.jpeg" alt="SkyRoute" className="auth-logo-img" />
+          <img src="/logo.png" alt="SkyRoute" className="auth-logo-img" />
           <p>Create your employee account</p>
         </div>
         <form onSubmit={handleSubmit} className="auth-form">

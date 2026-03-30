@@ -20,12 +20,12 @@
 }
 
 .header-logo-img {
-  height: 36px;
+  height: 34px;
   width: auto;
   object-fit: contain;
-  /* Logo has white background — blend it into the dark header */
-  mix-blend-mode: screen;
-  filter: brightness(0) invert(1);
+  background: white;
+  padding: 4px 10px;
+  border-radius: 6px;
 }
 
 .header-nav {
@@ -153,6 +153,7 @@
 
   .header-logo-img {
     height: 28px;
+    padding: 3px 8px;
   }
 
   /* Hide nav links — page-level headers handle navigation on mobile */
