@@ -1,0 +1,236 @@
+.emp-container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.emp-greeting {
+  margin-bottom: 1.5rem;
+}
+
+.emp-greeting h2 {
+  font-size: 1.6rem;
+  color: #1e3a5f;
+  margin: 0;
+}
+
+.clock-card {
+  background: white;
+  border-radius: 12px;
+  padding: 1.75rem;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.08);
+  margin-bottom: 2rem;
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  flex-wrap: wrap;
+}
+
+.clock-status {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.status-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.dot-in {
+  background: #16a34a;
+  box-shadow: 0 0 0 4px rgba(22,163,74,0.2);
+  animation: pulse 2s infinite;
+}
+
+.dot-out { background: #94a3b8; }
+.dot-idle { background: #fbbf24; }
+
+@keyframes pulse {
+  0%, 100% { box-shadow: 0 0 0 4px rgba(22,163,74,0.2); }
+  50% { box-shadow: 0 0 0 8px rgba(22,163,74,0.1); }
+}
+
+.status-text {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+.clock-times {
+  display: flex;
+  gap: 2rem;
+  flex: 1;
+}
+
+.clock-time-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.clock-label {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.clock-value {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #374151;
+}
+
+.clock-value.in { color: #16a34a; }
+.clock-value.out { color: #dc2626; }
+
+.clock-actions {
+  margin-left: auto;
+}
+
+.btn-clock {
+  padding: 0.75rem 2rem;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-clock-in {
+  background: #16a34a;
+  color: white;
+}
+
+.btn-clock-in:hover:not(:disabled) {
+  background: #15803d;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(22,163,74,0.3);
+}
+
+.btn-clock-out {
+  background: #dc2626;
+  color: white;
+}
+
+.btn-clock-out:hover:not(:disabled) {
+  background: #b91c1c;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(220,38,38,0.3);
+}
+
+.btn-clock:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+.clock-done-msg {
+  color: #16a34a;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.schedule-section {
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.08);
+}
+
+.schedule-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.25rem;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.schedule-section-header h3 {
+  font-size: 1.1rem;
+  color: #1e3a5f;
+  margin: 0;
+}
+
+.week-label-sm {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #374151;
+  min-width: 180px;
+  text-align: center;
+}
+
+.emp-schedule-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0.6rem;
+}
+
+.emp-day-card {
+  border-radius: 10px;
+  padding: 0.85rem 0.6rem;
+  text-align: center;
+  border: 2px solid transparent;
+  transition: all 0.15s;
+}
+
+.emp-day-card.has-shift {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+}
+
+.emp-day-card.no-shift {
+  background: #f8fafc;
+  border-color: #f1f5f9;
+}
+
+.emp-day-card.today {
+  border-color: #2563eb !important;
+  box-shadow: 0 0 0 2px rgba(37,99,235,0.15);
+}
+
+.emp-day-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+  margin-bottom: 0.6rem;
+}
+
+.emp-day-name {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.emp-day-date {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+.emp-shift-time {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #1e40af;
+}
+
+.emp-shift-label {
+  font-size: 0.72rem;
+  color: #3b82f6;
+  margin-top: 0.2rem;
+}
+
+.emp-off-label {
+  font-size: 0.8rem;
+  color: #cbd5e1;
+  font-style: italic;
+}

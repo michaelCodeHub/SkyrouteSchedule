@@ -1,0 +1,204 @@
+import { useState, useEffect } from 'react';
+import { collection, query, where, getDocs, addDoc, deleteDoc, doc, serverTimestamp } from 'firebase/firestore';
+import { db } from '../firebase/config';
+import Header from '../components/Header';
+import './AdminDashboard.css';
+
+const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+const DAY_SHORT = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+function getMondayOfWeek(date) {
+  const d = new Date(date);
+  const day = d.getDay();
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+  d.setDate(diff);
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+function dateToStr(date) {
+  return date.toISOString().split('T')[0];
+}
+
+function formatDateLabel(date) {
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+export default function AdminDashboard() {
+  const [weekStart, setWeekStart] = useState(getMondayOfWeek(new Date()));
+  const [employees, setEmployees] = useState([]);
+  const [shifts, setShifts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showModal, setShowModal] = useState(false);
+  const [selectedDay, setSelectedDay] = useState(null);
+  const [form, setForm] = useState({ userId: '', startTime: '09:00', endTime: '17:00' });
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    fetchEmployees();
+  }, []);
+
+  useEffect(() => {
+    fetchShifts();
+  }, [weekStart]);
+
+  const fetchEmployees = async () => {
+    const q = query(collection(db, 'users'), where('role', '==', 'employee'));
+    const snap = await getDocs(q);
+    setEmployees(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+  };
+
+  const fetchShifts = async () => {
+    setLoading(true);
+    const weekStr = dateToStr(weekStart);
+    const q = query(collection(db, 'shifts'), where('weekStart', '==', weekStr));
+    const snap = await getDocs(q);
+    setShifts(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    setLoading(false);
+  };
+
+  const weekDays = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(weekStart);
+    d.setDate(weekStart.getDate() + i);
+    return d;
+  });
+
+  const prevWeek = () => {
+    const d = new Date(weekStart);
+    d.setDate(d.getDate() - 7);
+    setWeekStart(d);
+  };
+
+  const nextWeek = () => {
+    const d = new Date(weekStart);
+    d.setDate(d.getDate() + 7);
+    setWeekStart(d);
+  };
+
+  const goToCurrentWeek = () => setWeekStart(getMondayOfWeek(new Date()));
+
+  const openAddShift = (dayDate) => {
+    setSelectedDay(dayDate);
+    setForm({ userId: employees[0]?.id || '', startTime: '09:00', endTime: '17:00' });
+    setShowModal(true);
+  };
+
+  const handleAddShift = async (e) => {
+    e.preventDefault();
+    if (!form.userId) return;
+    setSaving(true);
+    const emp = employees.find(e => e.id === form.userId);
+    await addDoc(collection(db, 'shifts'), {
+      userId: form.userId,
+      userName: emp?.name || '',
+      date: dateToStr(selectedDay),
+      startTime: form.startTime,
+      endTime: form.endTime,
+      weekStart: dateToStr(weekStart),
+      createdAt: serverTimestamp(),
+    });
+    await fetchShifts();
+    setShowModal(false);
+    setSaving(false);
+  };
+
+  const handleDeleteShift = async (shiftId) => {
+    await deleteDoc(doc(db, 'shifts', shiftId));
+    setShifts(prev => prev.filter(s => s.id !== shiftId));
+  };
+
+  const getShiftsForDay = (dayDate) => {
+    const dateStr = dateToStr(dayDate);
+    return shifts.filter(s => s.date === dateStr);
+  };
+
+  const isToday = (date) => dateToStr(date) === dateToStr(new Date());
+
+  const weekLabel = `${formatDateLabel(weekDays[0])} – ${formatDateLabel(weekDays[6])}, ${weekDays[0].getFullYear()}`;
+
+  return (
+    <div className="page">
+      <Header />
+      <div className="admin-container">
+        <div className="admin-header">
+          <div>
+            <h2>Weekly Schedule</h2>
+            <p className="subtitle">Manage employee shifts</p>
+          </div>
+          <div className="week-nav">
+            <button onClick={prevWeek} className="btn-nav">‹ Prev</button>
+            <button onClick={goToCurrentWeek} className="btn-today">Today</button>
+            <span className="week-label">{weekLabel}</span>
+            <button onClick={nextWeek} className="btn-nav">Next ›</button>
+          </div>
+        </div>
+
+        {loading ? (
+          <div className="loading">Loading schedule...</div>
+        ) : (
+          <div className="schedule-grid">
+            {weekDays.map((dayDate, idx) => (
+              <div key={idx} className={`day-column ${isToday(dayDate) ? 'today' : ''}`}>
+                <div className="day-header">
+                  <span className="day-name">{DAY_SHORT[idx]}</span>
+                  <span className="day-date">{formatDateLabel(dayDate)}</span>
+                  {isToday(dayDate) && <span className="today-badge">Today</span>}
+                </div>
+                <div className="day-shifts">
+                  {getShiftsForDay(dayDate).map(shift => (
+                    <div key={shift.id} className="shift-card">
+                      <div className="shift-employee">{shift.userName}</div>
+                      <div className="shift-time">{shift.startTime} – {shift.endTime}</div>
+                      <button
+                        className="shift-delete"
+                        onClick={() => handleDeleteShift(shift.id)}
+                        title="Remove shift"
+                      >×</button>
+                    </div>
+                  ))}
+                  <button className="btn-add-shift" onClick={() => openAddShift(dayDate)}>
+                    + Add Shift
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {showModal && (
+        <div className="modal-overlay" onClick={() => setShowModal(false)}>
+          <div className="modal" onClick={e => e.stopPropagation()}>
+            <h3>Add Shift — {selectedDay && formatDateLabel(selectedDay)}, {selectedDay?.getFullYear()}</h3>
+            <form onSubmit={handleAddShift} className="modal-form">
+              <div className="form-group">
+                <label>Employee</label>
+                <select value={form.userId} onChange={e => setForm({ ...form, userId: e.target.value })} required>
+                  {employees.map(emp => (
+                    <option key={emp.id} value={emp.id}>{emp.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Start Time</label>
+                  <input type="time" value={form.startTime} onChange={e => setForm({ ...form, startTime: e.target.value })} required />
+                </div>
+                <div className="form-group">
+                  <label>End Time</label>
+                  <input type="time" value={form.endTime} onChange={e => setForm({ ...form, endTime: e.target.value })} required />
+                </div>
+              </div>
+              <div className="modal-actions">
+                <button type="button" className="btn-cancel" onClick={() => setShowModal(false)}>Cancel</button>
+                <button type="submit" className="btn-primary" disabled={saving}>
+                  {saving ? 'Saving...' : 'Add Shift'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
