@@ -17,14 +17,12 @@ function formatDuration(hours) {
   return `${h}h ${m}m`;
 }
 
-// Convert "09:00" string to decimal hours since midnight
 function timeStrToHours(timeStr) {
   if (!timeStr) return null;
   const [h, m] = timeStr.split(':').map(Number);
   return h + m / 60;
 }
 
-// Format "09:00" → "09:00 AM"
 function formatTimeStr(timeStr) {
   if (!timeStr) return '—';
   const [h, m] = timeStr.split(':').map(Number);
@@ -38,12 +36,20 @@ function getVariance(scheduledHrs, workedHrs) {
   return workedHrs - scheduledHrs;
 }
 
+function getStatus(row) {
+  if (row.shift && !row.att)       return { label: 'Absent',      cls: 'status-absent' };
+  if (!row.shift && row.att)       return { label: 'Unscheduled', cls: 'status-unscheduled' };
+  if (row.att && !row.att.clockOut) return { label: 'In Progress', cls: 'status-active' };
+  if (row.att && row.att.clockOut)  return { label: 'Complete',    cls: 'status-complete' };
+  return { label: '—', cls: '' };
+}
+
 export default function ReportsPage() {
-  const [employees, setEmployees] = useState([]);
+  const [employees, setEmployees]         = useState([]);
   const [selectedEmployee, setSelectedEmployee] = useState('');
-  const [rows, setRows] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [dateFrom, setDateFrom] = useState(() => {
+  const [rows, setRows]                   = useState([]);
+  const [loading, setLoading]             = useState(false);
+  const [dateFrom, setDateFrom]           = useState(() => {
     const d = new Date();
     d.setDate(d.getDate() - 14);
     return d.toISOString().split('T')[0];
@@ -70,39 +76,32 @@ export default function ReportsPage() {
     try {
       const [attendanceSnap, shiftsSnap] = await Promise.all([
         getDocs(query(collection(db, 'attendance'), where('userId', '==', selectedEmployee))),
-        getDocs(query(collection(db, 'shifts'), where('userId', '==', selectedEmployee))),
+        getDocs(query(collection(db, 'shifts'),     where('userId', '==', selectedEmployee))),
       ]);
 
       const attendance = {};
       attendanceSnap.docs.forEach(d => {
         const data = d.data();
-        if (data.date >= dateFrom && data.date <= dateTo) {
+        if (data.date >= dateFrom && data.date <= dateTo)
           attendance[data.date] = { id: d.id, ...data };
-        }
       });
 
       const shifts = {};
       shiftsSnap.docs.forEach(d => {
         const data = d.data();
-        if (data.date >= dateFrom && data.date <= dateTo) {
+        if (data.date >= dateFrom && data.date <= dateTo)
           shifts[data.date] = { id: d.id, ...data };
-        }
       });
 
-      // Build unified rows for all dates that have either a shift or attendance
       const allDates = new Set([...Object.keys(attendance), ...Object.keys(shifts)]);
       const merged = Array.from(allDates)
         .sort((a, b) => b.localeCompare(a))
         .map(date => {
-          const att = attendance[date] || null;
-          const shift = shifts[date] || null;
-
-          const scheduledHrs = shift
-            ? timeStrToHours(shift.endTime) - timeStrToHours(shift.startTime)
-            : null;
-          const workedHrs = att?.duration ?? null;
-          const variance = getVariance(scheduledHrs, workedHrs);
-
+          const att   = attendance[date] || null;
+          const shift = shifts[date]     || null;
+          const scheduledHrs = shift ? timeStrToHours(shift.endTime) - timeStrToHours(shift.startTime) : null;
+          const workedHrs    = att?.duration ?? null;
+          const variance     = getVariance(scheduledHrs, workedHrs);
           return { date, shift, att, scheduledHrs, workedHrs, variance };
         });
 
@@ -114,24 +113,27 @@ export default function ReportsPage() {
     }
   };
 
-  const selectedEmp = employees.find(e => e.id === selectedEmployee);
-  const scheduledDays = rows.filter(r => r.shift).length;
-  const workedDays = rows.filter(r => r.att).length;
+  const selectedEmp    = employees.find(e => e.id === selectedEmployee);
+  const scheduledDays  = rows.filter(r => r.shift).length;
+  const workedDays     = rows.filter(r => r.att).length;
   const totalScheduled = rows.reduce((s, r) => s + (r.scheduledHrs || 0), 0);
-  const totalWorked = rows.reduce((s, r) => s + (r.workedHrs || 0), 0);
-  const totalVariance = totalWorked - totalScheduled;
+  const totalWorked    = rows.reduce((s, r) => s + (r.workedHrs    || 0), 0);
+  const totalVariance  = totalWorked - totalScheduled;
 
   return (
     <div className="page">
       <Header />
       <div className="reports-container">
+
+        {/* ── Page title ── */}
         <div className="reports-header">
           <h2>Attendance Reports</h2>
           <p className="subtitle">Scheduled vs actual hours comparison</p>
         </div>
 
+        {/* ── Filters ── */}
         <div className="reports-filters">
-          <div className="form-group">
+          <div className="form-group filter-employee">
             <label>Employee</label>
             <select value={selectedEmployee} onChange={e => setSelectedEmployee(e.target.value)}>
               {employees.map(emp => (
@@ -139,24 +141,27 @@ export default function ReportsPage() {
               ))}
             </select>
           </div>
-          <div className="form-group">
-            <label>From</label>
-            <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} />
-          </div>
-          <div className="form-group">
-            <label>To</label>
-            <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} />
+          <div className="filter-dates">
+            <div className="form-group">
+              <label>From</label>
+              <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} />
+            </div>
+            <div className="form-group">
+              <label>To</label>
+              <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} />
+            </div>
           </div>
         </div>
 
+        {/* ── Summary cards ── */}
         {selectedEmp && (
           <div className="summary-grid">
             <div className="summary-card">
               <span className="summary-label">Employee</span>
-              <span className="summary-value">{selectedEmp.name}</span>
+              <span className="summary-value summary-name">{selectedEmp.name}</span>
             </div>
             <div className="summary-card">
-              <span className="summary-label">Scheduled Days</span>
+              <span className="summary-label">Sched. Days</span>
               <span className="summary-value">{scheduledDays}</span>
             </div>
             <div className="summary-card">
@@ -164,7 +169,7 @@ export default function ReportsPage() {
               <span className="summary-value">{workedDays}</span>
             </div>
             <div className="summary-card">
-              <span className="summary-label">Scheduled Hours</span>
+              <span className="summary-label">Sched. Hours</span>
               <span className="summary-value scheduled-color">{formatDuration(totalScheduled)}</span>
             </div>
             <div className="summary-card">
@@ -172,10 +177,9 @@ export default function ReportsPage() {
               <span className="summary-value worked-color">{formatDuration(totalWorked)}</span>
             </div>
             <div className="summary-card">
-              <span className="summary-label">Total Variance</span>
+              <span className="summary-label">Variance</span>
               <span className={`summary-value ${totalVariance >= 0 ? 'variance-pos' : 'variance-neg'}`}>
                 {totalVariance >= 0 ? '+' : ''}{formatDuration(Math.abs(totalVariance))}
-                {totalVariance >= 0 ? ' over' : ' under'}
               </span>
             </div>
           </div>
@@ -183,58 +187,45 @@ export default function ReportsPage() {
 
         {loading ? (
           <div className="loading">Loading records...</div>
+        ) : rows.length === 0 ? (
+          <div className="empty-state">No records found for this period.</div>
         ) : (
-          <div className="records-table-wrapper">
-            <table className="records-table">
-              <thead>
-                <tr className="group-header-row">
-                  <th rowSpan="2" className="date-col">Date</th>
-                  <th colSpan="3" className="group-scheduled">Scheduled</th>
-                  <th colSpan="3" className="group-actual">Actual</th>
-                  <th rowSpan="2" className="variance-col">Variance</th>
-                  <th rowSpan="2">Status</th>
-                </tr>
-                <tr className="sub-header-row">
-                  <th className="group-scheduled-sub">Start</th>
-                  <th className="group-scheduled-sub">End</th>
-                  <th className="group-scheduled-sub">Hours</th>
-                  <th className="group-actual-sub">Clock In</th>
-                  <th className="group-actual-sub">Clock Out</th>
-                  <th className="group-actual-sub">Hours</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.length === 0 ? (
-                  <tr><td colSpan="9" className="empty-row">No records found for this period.</td></tr>
-                ) : (
-                  rows.map(row => {
+          <>
+            {/* ══ Desktop: table ══ */}
+            <div className="records-table-wrapper desktop-only">
+              <table className="records-table">
+                <thead>
+                  <tr className="group-header-row">
+                    <th rowSpan="2" className="date-col">Date</th>
+                    <th colSpan="3" className="group-scheduled">Scheduled</th>
+                    <th colSpan="3" className="group-actual">Actual</th>
+                    <th rowSpan="2" className="variance-col">Variance</th>
+                    <th rowSpan="2">Status</th>
+                  </tr>
+                  <tr className="sub-header-row">
+                    <th className="group-scheduled-sub">Start</th>
+                    <th className="group-scheduled-sub">End</th>
+                    <th className="group-scheduled-sub">Hours</th>
+                    <th className="group-actual-sub">Clock In</th>
+                    <th className="group-actual-sub">Clock Out</th>
+                    <th className="group-actual-sub">Hours</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map(row => {
                     const { date, shift, att, scheduledHrs, workedHrs, variance } = row;
-                    const isAbsent = shift && !att;
-                    const isUnscheduled = !shift && att;
-
-                    let statusLabel, statusClass;
-                    if (isAbsent) { statusLabel = 'Absent'; statusClass = 'status-absent'; }
-                    else if (isUnscheduled) { statusLabel = 'Unscheduled'; statusClass = 'status-unscheduled'; }
-                    else if (att && !att.clockOut) { statusLabel = 'In Progress'; statusClass = 'status-active'; }
-                    else if (att && att.clockOut) { statusLabel = 'Complete'; statusClass = 'status-complete'; }
-                    else { statusLabel = '—'; statusClass = ''; }
-
+                    const { label: statusLabel, cls: statusClass } = getStatus(row);
                     return (
-                      <tr key={date} className={isAbsent ? 'row-absent' : ''}>
+                      <tr key={date} className={row.shift && !row.att ? 'row-absent' : ''}>
                         <td className="date-cell">
-                          {new Date(date + 'T00:00:00').toLocaleDateString('en-US', {
-                            weekday: 'short', month: 'short', day: 'numeric'
-                          })}
+                          {new Date(date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
                         </td>
-                        {/* Scheduled */}
                         <td className="sched-cell">{formatTimeStr(shift?.startTime)}</td>
                         <td className="sched-cell">{formatTimeStr(shift?.endTime)}</td>
                         <td className="sched-cell hours-cell">{shift ? formatDuration(scheduledHrs) : '—'}</td>
-                        {/* Actual */}
                         <td className="actual-cell">{formatTimestamp(att?.clockIn)}</td>
                         <td className="actual-cell">{formatTimestamp(att?.clockOut)}</td>
                         <td className="actual-cell hours-cell">{att ? formatDuration(workedHrs) : '—'}</td>
-                        {/* Variance */}
                         <td>
                           {variance !== null ? (
                             <span className={`variance-badge ${variance >= 0 ? 'var-over' : 'var-under'}`}>
@@ -242,16 +233,59 @@ export default function ReportsPage() {
                             </span>
                           ) : '—'}
                         </td>
-                        <td>
-                          <span className={`status-badge ${statusClass}`}>{statusLabel}</span>
-                        </td>
+                        <td><span className={`status-badge ${statusClass}`}>{statusLabel}</span></td>
                       </tr>
                     );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {/* ══ Mobile: cards ══ */}
+            <div className="report-cards mobile-only">
+              {rows.map(row => {
+                const { date, shift, att, scheduledHrs, workedHrs, variance } = row;
+                const { label: statusLabel, cls: statusClass } = getStatus(row);
+                const dateLabel = new Date(date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+
+                return (
+                  <div key={date} className={`report-card ${row.shift && !row.att ? 'report-card-absent' : ''}`}>
+                    {/* Card header */}
+                    <div className="rc-header">
+                      <span className="rc-date">{dateLabel}</span>
+                      <span className={`status-badge ${statusClass}`}>{statusLabel}</span>
+                    </div>
+
+                    {/* Two-column comparison */}
+                    <div className="rc-comparison">
+                      <div className="rc-col rc-col-sched">
+                        <div className="rc-col-title">Scheduled</div>
+                        <div className="rc-time-range">
+                          {shift ? `${formatTimeStr(shift.startTime)} – ${formatTimeStr(shift.endTime)}` : '—'}
+                        </div>
+                        <div className="rc-hours">{shift ? formatDuration(scheduledHrs) : '—'}</div>
+                      </div>
+                      <div className="rc-divider" />
+                      <div className="rc-col rc-col-actual">
+                        <div className="rc-col-title">Actual</div>
+                        <div className="rc-time-range">
+                          {att ? `${formatTimestamp(att.clockIn)} – ${formatTimestamp(att.clockOut)}` : '—'}
+                        </div>
+                        <div className="rc-hours">{att ? formatDuration(workedHrs) : '—'}</div>
+                      </div>
+                    </div>
+
+                    {/* Variance footer */}
+                    {variance !== null && (
+                      <div className={`rc-variance ${variance >= 0 ? 'rc-var-over' : 'rc-var-under'}`}>
+                        {variance >= 0 ? '▲' : '▼'} {formatDuration(Math.abs(variance))} {variance >= 0 ? 'over' : 'under'}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </>
         )}
       </div>
     </div>
