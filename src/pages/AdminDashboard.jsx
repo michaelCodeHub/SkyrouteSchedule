@@ -4,8 +4,8 @@ import { db } from '../firebase/config';
 import Header from '../components/Header';
 import './AdminDashboard.css';
 
-const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 const DAY_SHORT = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+const DAY_FULL  = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
 function getMondayOfWeek(date) {
   const d = new Date(date);
@@ -24,23 +24,29 @@ function formatDateLabel(date) {
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
+function getTodayDayIndex(weekStart) {
+  const todayStr = dateToStr(new Date());
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(weekStart);
+    d.setDate(weekStart.getDate() + i);
+    if (dateToStr(d) === todayStr) return i;
+  }
+  return 0;
+}
+
 export default function AdminDashboard() {
-  const [weekStart, setWeekStart] = useState(getMondayOfWeek(new Date()));
-  const [employees, setEmployees] = useState([]);
-  const [shifts, setShifts] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [showModal, setShowModal] = useState(false);
+  const [weekStart, setWeekStart]     = useState(getMondayOfWeek(new Date()));
+  const [activeDay, setActiveDay]     = useState(() => getTodayDayIndex(getMondayOfWeek(new Date())));
+  const [employees, setEmployees]     = useState([]);
+  const [shifts, setShifts]           = useState([]);
+  const [loading, setLoading]         = useState(true);
+  const [showModal, setShowModal]     = useState(false);
   const [selectedDay, setSelectedDay] = useState(null);
-  const [form, setForm] = useState({ userId: '', startTime: '09:00', endTime: '17:00' });
-  const [saving, setSaving] = useState(false);
+  const [form, setForm]               = useState({ userId: '', startTime: '09:00', endTime: '17:00' });
+  const [saving, setSaving]           = useState(false);
 
-  useEffect(() => {
-    fetchEmployees();
-  }, []);
-
-  useEffect(() => {
-    fetchShifts();
-  }, [weekStart]);
+  useEffect(() => { fetchEmployees(); }, []);
+  useEffect(() => { fetchShifts(); }, [weekStart]);
 
   const fetchEmployees = async () => {
     const q = query(collection(db, 'users'), where('role', '==', 'employee'));
@@ -67,15 +73,31 @@ export default function AdminDashboard() {
     const d = new Date(weekStart);
     d.setDate(d.getDate() - 7);
     setWeekStart(d);
+    setActiveDay(0);
   };
 
   const nextWeek = () => {
     const d = new Date(weekStart);
     d.setDate(d.getDate() + 7);
     setWeekStart(d);
+    setActiveDay(0);
   };
 
-  const goToCurrentWeek = () => setWeekStart(getMondayOfWeek(new Date()));
+  const goToToday = () => {
+    const monday = getMondayOfWeek(new Date());
+    setWeekStart(monday);
+    setActiveDay(getTodayDayIndex(monday));
+  };
+
+  const prevDay = () => {
+    if (activeDay === 0) { prevWeek(); setActiveDay(6); }
+    else setActiveDay(activeDay - 1);
+  };
+
+  const nextDay = () => {
+    if (activeDay === 6) { nextWeek(); setActiveDay(0); }
+    else setActiveDay(activeDay + 1);
+  };
 
   const openAddShift = (dayDate) => {
     setSelectedDay(dayDate);
@@ -115,58 +137,142 @@ export default function AdminDashboard() {
   const isToday = (date) => dateToStr(date) === dateToStr(new Date());
 
   const weekLabel = `${formatDateLabel(weekDays[0])} – ${formatDateLabel(weekDays[6])}, ${weekDays[0].getFullYear()}`;
+  const activeDayDate = weekDays[activeDay];
 
   return (
     <div className="page">
       <Header />
       <div className="admin-container">
-        <div className="admin-header">
+
+        {/* ── Desktop header ── */}
+        <div className="admin-header desktop-only">
           <div>
             <h2>Weekly Schedule</h2>
             <p className="subtitle">Manage employee shifts</p>
           </div>
           <div className="week-nav">
             <button onClick={prevWeek} className="btn-nav">‹ Prev</button>
-            <button onClick={goToCurrentWeek} className="btn-today">Today</button>
+            <button onClick={goToToday} className="btn-today">Today</button>
             <span className="week-label">{weekLabel}</span>
             <button onClick={nextWeek} className="btn-nav">Next ›</button>
-            <button onClick={fetchEmployees} className="btn-nav" title="Refresh employee list">↻ Employees</button>
+            <button onClick={fetchEmployees} className="btn-nav" title="Refresh employee list">↻</button>
+          </div>
+        </div>
+
+        {/* ── Mobile header ── */}
+        <div className="mobile-header mobile-only">
+          <div className="mobile-title-row">
+            <h2>Schedule</h2>
+            <div className="mobile-title-actions">
+              <button onClick={goToToday} className="btn-today-sm">Today</button>
+              <button onClick={fetchEmployees} className="btn-icon" title="Refresh">↻</button>
+            </div>
+          </div>
+
+          {/* Week navigation */}
+          <div className="mobile-week-nav">
+            <button onClick={prevWeek} className="btn-week-nav">‹</button>
+            <span className="mobile-week-label">{weekLabel}</span>
+            <button onClick={nextWeek} className="btn-week-nav">›</button>
+          </div>
+
+          {/* Day strip */}
+          <div className="day-strip">
+            {weekDays.map((d, idx) => (
+              <button
+                key={idx}
+                className={`day-pill ${idx === activeDay ? 'day-pill-active' : ''} ${isToday(d) ? 'day-pill-today' : ''}`}
+                onClick={() => setActiveDay(idx)}
+              >
+                <span className="day-pill-name">{DAY_SHORT[idx]}</span>
+                <span className="day-pill-num">{d.getDate()}</span>
+                {getShiftsForDay(d).length > 0 && (
+                  <span className="day-pill-dot" />
+                )}
+              </button>
+            ))}
           </div>
         </div>
 
         {loading ? (
           <div className="loading">Loading schedule...</div>
         ) : (
-          <div className="schedule-grid">
-            {weekDays.map((dayDate, idx) => (
-              <div key={idx} className={`day-column ${isToday(dayDate) ? 'today' : ''}`}>
-                <div className="day-header">
-                  <span className="day-name">{DAY_SHORT[idx]}</span>
-                  <span className="day-date">{formatDateLabel(dayDate)}</span>
-                  {isToday(dayDate) && <span className="today-badge">Today</span>}
+          <>
+            {/* ── Desktop: 7-column grid ── */}
+            <div className="schedule-grid desktop-only">
+              {weekDays.map((dayDate, idx) => (
+                <div key={idx} className={`day-column ${isToday(dayDate) ? 'today' : ''}`}>
+                  <div className="day-header">
+                    <span className="day-name">{DAY_SHORT[idx]}</span>
+                    <span className="day-date">{formatDateLabel(dayDate)}</span>
+                    {isToday(dayDate) && <span className="today-badge">Today</span>}
+                  </div>
+                  <div className="day-shifts">
+                    {getShiftsForDay(dayDate).map(shift => (
+                      <div key={shift.id} className="shift-card">
+                        <div className="shift-employee">{shift.userName}</div>
+                        <div className="shift-time">{shift.startTime} – {shift.endTime}</div>
+                        <button className="shift-delete" onClick={() => handleDeleteShift(shift.id)}>×</button>
+                      </div>
+                    ))}
+                    <button className="btn-add-shift" onClick={() => openAddShift(dayDate)}>
+                      + Add Shift
+                    </button>
+                  </div>
                 </div>
-                <div className="day-shifts">
-                  {getShiftsForDay(dayDate).map(shift => (
-                    <div key={shift.id} className="shift-card">
-                      <div className="shift-employee">{shift.userName}</div>
-                      <div className="shift-time">{shift.startTime} – {shift.endTime}</div>
-                      <button
-                        className="shift-delete"
-                        onClick={() => handleDeleteShift(shift.id)}
-                        title="Remove shift"
-                      >×</button>
-                    </div>
-                  ))}
-                  <button className="btn-add-shift" onClick={() => openAddShift(dayDate)}>
-                    + Add Shift
-                  </button>
+              ))}
+            </div>
+
+            {/* ── Mobile: single day view ── */}
+            <div className="mobile-day-view mobile-only">
+              <div className="mobile-day-nav">
+                <button onClick={prevDay} className="btn-day-nav">‹</button>
+                <div className="mobile-day-title">
+                  <span className="mobile-day-full">{DAY_FULL[activeDay]}</span>
+                  <span className="mobile-day-date">
+                    {formatDateLabel(activeDayDate)}, {activeDayDate.getFullYear()}
+                    {isToday(activeDayDate) && <span className="today-badge-inline">Today</span>}
+                  </span>
                 </div>
+                <button onClick={nextDay} className="btn-day-nav">›</button>
               </div>
-            ))}
-          </div>
+
+              <div className="mobile-shifts-list">
+                {getShiftsForDay(activeDayDate).length === 0 ? (
+                  <div className="mobile-no-shifts">No shifts scheduled</div>
+                ) : (
+                  getShiftsForDay(activeDayDate).map(shift => (
+                    <div key={shift.id} className="mobile-shift-card">
+                      <div className="mobile-shift-avatar">
+                        {shift.userName.charAt(0)}
+                      </div>
+                      <div className="mobile-shift-info">
+                        <div className="mobile-shift-name">{shift.userName}</div>
+                        <div className="mobile-shift-time">{shift.startTime} – {shift.endTime}</div>
+                      </div>
+                      <button
+                        className="mobile-shift-delete"
+                        onClick={() => handleDeleteShift(shift.id)}
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              <button
+                className="btn-add-shift-mobile"
+                onClick={() => openAddShift(activeDayDate)}
+              >
+                + Add Shift for {DAY_SHORT[activeDay]}
+              </button>
+            </div>
+          </>
         )}
       </div>
 
+      {/* Shared modal */}
       {showModal && (
         <div className="modal-overlay" onClick={() => setShowModal(false)}>
           <div className="modal" onClick={e => e.stopPropagation()}>
