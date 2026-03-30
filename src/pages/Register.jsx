@@ -51,8 +51,7 @@ export default function Register() {
     <div className="auth-bg">
       <div className="auth-card">
         <div className="auth-header">
-          <span className="auth-logo">✈</span>
-          <h1>SkyRoute Schedule</h1>
+          <img src="/logo.jpeg" alt="SkyRoute" className="auth-logo-img" />
           <p>Create your employee account</p>
         </div>
         <form onSubmit={handleSubmit} className="auth-form">

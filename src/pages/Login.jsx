@@ -42,8 +42,7 @@ export default function Login() {
     <div className="auth-bg">
       <div className="auth-card">
         <div className="auth-header">
-          <span className="auth-logo">✈</span>
-          <h1>SkyRoute Schedule</h1>
+          <img src="/logo.jpeg" alt="SkyRoute" className="auth-logo-img" />
           <p>Sign in to your account</p>
         </div>
         <form onSubmit={handleSubmit} className="auth-form">
