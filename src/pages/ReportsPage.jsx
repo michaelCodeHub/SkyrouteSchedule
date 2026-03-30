@@ -4,6 +4,13 @@ import { db } from '../firebase/config';
 import Header from '../components/Header';
 import './ReportsPage.css';
 
+function localDateStr(date) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
 function formatTimestamp(timestamp) {
   if (!timestamp) return '—';
   const d = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
@@ -52,9 +59,9 @@ export default function ReportsPage() {
   const [dateFrom, setDateFrom]           = useState(() => {
     const d = new Date();
     d.setDate(d.getDate() - 14);
-    return d.toISOString().split('T')[0];
+    return localDateStr(d);
   });
-  const [dateTo, setDateTo] = useState(new Date().toISOString().split('T')[0]);
+  const [dateTo, setDateTo] = useState(localDateStr(new Date()));
 
   useEffect(() => {
     const fetchEmployees = async () => {
