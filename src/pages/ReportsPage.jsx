@@ -30,6 +30,13 @@ function timeStrToHours(timeStr) {
   return h + m / 60;
 }
 
+function calcScheduledHours(startTime, endTime) {
+  if (!startTime || !endTime) return null;
+  let hrs = timeStrToHours(endTime) - timeStrToHours(startTime);
+  if (hrs <= 0) hrs += 24; // handle overnight shifts (e.g. 22:00 – 06:00)
+  return hrs;
+}
+
 function formatTimeStr(timeStr) {
   if (!timeStr) return '—';
   const [h, m] = timeStr.split(':').map(Number);
@@ -106,7 +113,7 @@ export default function ReportsPage() {
         .map(date => {
           const att   = attendance[date] || null;
           const shift = shifts[date]     || null;
-          const scheduledHrs = shift ? timeStrToHours(shift.endTime) - timeStrToHours(shift.startTime) : null;
+          const scheduledHrs = shift ? calcScheduledHours(shift.startTime, shift.endTime) : null;
           const workedHrs    = att?.duration ?? null;
           const variance     = getVariance(scheduledHrs, workedHrs);
           return { date, shift, att, scheduledHrs, workedHrs, variance };

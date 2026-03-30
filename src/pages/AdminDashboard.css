@@ -10,12 +10,12 @@
 }
 
 /* ─── Responsive visibility ─── */
-/* Do NOT set display:block here — it overrides display:grid/flex on children */
-.mobile-only { display: none; }
+.mobile-only { display: none !important; }
 
 @media (max-width: 768px) {
-  .desktop-only { display: none !important; }
-  .mobile-only  { display: block; }
+  .desktop-only    { display: none !important; }
+  .mobile-header   { display: block !important; }
+  .mobile-day-view { display: block !important; }
   .admin-container { padding: 0; }
 }
 
