@@ -156,8 +156,11 @@
   border: 1px solid #bfdbfe;
   border-radius: 6px;
   padding: 0.5rem 0.6rem;
-  position: relative;
+  cursor: pointer;
+  transition: box-shadow 0.15s, border-color 0.15s;
 }
+.shift-card:hover { border-color: #93c5fd; box-shadow: 0 2px 6px rgba(37,99,235,0.1); }
+.shift-card-active { border-color: #2563eb !important; box-shadow: 0 2px 8px rgba(37,99,235,0.18) !important; }
 
 .shift-employee {
   font-size: 0.82rem;
@@ -171,21 +174,29 @@
   color: #3b82f6;
 }
 
-.shift-delete {
-  position: absolute;
-  top: 0.3rem;
-  right: 0.3rem;
-  background: none;
-  border: none;
-  color: #94a3b8;
-  cursor: pointer;
-  font-size: 1rem;
-  line-height: 1;
-  padding: 0 0.2rem;
-  border-radius: 3px;
-  transition: color 0.15s, background 0.15s;
+.shift-actions {
+  display: flex;
+  gap: 0.35rem;
+  margin-top: 0.5rem;
+  padding-top: 0.45rem;
+  border-top: 1px solid #bfdbfe;
 }
-.shift-delete:hover { color: #dc2626; background: #fee2e2; }
+
+.shift-action-edit,
+.shift-action-delete {
+  flex: 1;
+  border: none;
+  border-radius: 4px;
+  padding: 0.3rem 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.shift-action-edit { background: #dbeafe; color: #1d4ed8; }
+.shift-action-edit:hover { background: #bfdbfe; }
+.shift-action-delete { background: #fee2e2; color: #dc2626; }
+.shift-action-delete:hover { background: #fecaca; }
 
 .btn-add-shift {
   width: 100%;
@@ -462,7 +473,12 @@
   gap: 0.85rem;
   box-shadow: 0 1px 4px rgba(0,0,0,0.06);
   border-left: 4px solid #2563eb;
+  cursor: pointer;
+  transition: box-shadow 0.15s;
+  flex-wrap: wrap;
 }
+.mobile-shift-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+.mobile-shift-card-active { box-shadow: 0 0 0 2px #2563eb, 0 4px 12px rgba(37,99,235,0.12) !important; }
 
 .mobile-shift-avatar {
   width: 40px;
@@ -495,19 +511,29 @@
   margin-top: 0.15rem;
 }
 
-.mobile-shift-delete {
-  background: #fef2f2;
-  color: #dc2626;
-  border: 1px solid #fecaca;
-  padding: 0.3rem 0.65rem;
-  border-radius: 6px;
-  font-size: 0.78rem;
+.mobile-shift-actions {
+  width: 100%;
+  display: flex;
+  gap: 0.5rem;
+  padding-top: 0.65rem;
+  border-top: 1px solid #f1f5f9;
+}
+
+.mobile-shift-action-edit,
+.mobile-shift-action-delete {
+  flex: 1;
+  border: none;
+  border-radius: 8px;
+  padding: 0.5rem;
+  font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
   transition: background 0.15s;
-  white-space: nowrap;
 }
-.mobile-shift-delete:hover { background: #fee2e2; }
+.mobile-shift-action-edit { background: #eff6ff; color: #1d4ed8; }
+.mobile-shift-action-edit:hover { background: #dbeafe; }
+.mobile-shift-action-delete { background: #fef2f2; color: #dc2626; }
+.mobile-shift-action-delete:hover { background: #fee2e2; }
 
 .btn-add-shift-mobile {
   width: 100%;

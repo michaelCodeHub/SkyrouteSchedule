@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { collection, query, where, getDocs, addDoc, deleteDoc, doc, serverTimestamp } from 'firebase/firestore';
+import { collection, query, where, getDocs, addDoc, deleteDoc, updateDoc, doc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import Header from '../components/Header';
 import './AdminDashboard.css';
@@ -47,6 +47,8 @@ export default function AdminDashboard() {
   const [selectedDay, setSelectedDay] = useState(null);
   const [form, setForm]               = useState({ userId: '', startTime: '09:00', endTime: '17:00' });
   const [saving, setSaving]           = useState(false);
+  const [editingShift, setEditingShift] = useState(null);
+  const [activeShiftId, setActiveShiftId] = useState(null);
 
   useEffect(() => { fetchEmployees(); }, []);
   useEffect(() => { fetchShifts(); }, [weekStart]);
@@ -104,7 +106,15 @@ export default function AdminDashboard() {
 
   const openAddShift = (dayDate) => {
     setSelectedDay(dayDate);
+    setEditingShift(null);
     setForm({ userId: employees[0]?.id || '', startTime: '09:00', endTime: '17:00' });
+    setShowModal(true);
+  };
+
+  const openEditShift = (shift) => {
+    setEditingShift(shift);
+    setForm({ userId: shift.userId, startTime: shift.startTime, endTime: shift.endTime });
+    setActiveShiftId(null);
     setShowModal(true);
   };
 
@@ -113,23 +123,34 @@ export default function AdminDashboard() {
     if (!form.userId) return;
     setSaving(true);
     const emp = employees.find(e => e.id === form.userId);
-    await addDoc(collection(db, 'shifts'), {
-      userId: form.userId,
-      userName: emp?.name || '',
-      date: dateToStr(selectedDay),
-      startTime: form.startTime,
-      endTime: form.endTime,
-      weekStart: dateToStr(weekStart),
-      createdAt: serverTimestamp(),
-    });
+    if (editingShift) {
+      await updateDoc(doc(db, 'shifts', editingShift.id), {
+        userId: form.userId,
+        userName: emp?.name || '',
+        startTime: form.startTime,
+        endTime: form.endTime,
+      });
+    } else {
+      await addDoc(collection(db, 'shifts'), {
+        userId: form.userId,
+        userName: emp?.name || '',
+        date: dateToStr(selectedDay),
+        startTime: form.startTime,
+        endTime: form.endTime,
+        weekStart: dateToStr(weekStart),
+        createdAt: serverTimestamp(),
+      });
+    }
     await fetchShifts();
     setShowModal(false);
+    setEditingShift(null);
     setSaving(false);
   };
 
   const handleDeleteShift = async (shiftId) => {
     await deleteDoc(doc(db, 'shifts', shiftId));
     setShifts(prev => prev.filter(s => s.id !== shiftId));
+    setActiveShiftId(null);
   };
 
   const getShiftsForDay = (dayDate) => {
@@ -202,7 +223,7 @@ export default function AdminDashboard() {
         ) : (
           <>
             {/* ── Desktop: 7-column grid ── */}
-            <div className="schedule-grid desktop-only">
+            <div className="schedule-grid desktop-only" onClick={() => setActiveShiftId(null)}>
               {weekDays.map((dayDate, idx) => (
                 <div key={idx} className={`day-column ${isToday(dayDate) ? 'today' : ''}`}>
                   <div className="day-header">
@@ -212,10 +233,19 @@ export default function AdminDashboard() {
                   </div>
                   <div className="day-shifts">
                     {getShiftsForDay(dayDate).map(shift => (
-                      <div key={shift.id} className="shift-card">
+                      <div
+                        key={shift.id}
+                        className={`shift-card ${activeShiftId === shift.id ? 'shift-card-active' : ''}`}
+                        onClick={e => { e.stopPropagation(); setActiveShiftId(activeShiftId === shift.id ? null : shift.id); }}
+                      >
                         <div className="shift-employee">{shift.userName}</div>
                         <div className="shift-time">{shift.startTime} – {shift.endTime}</div>
-                        <button className="shift-delete" onClick={() => handleDeleteShift(shift.id)}>×</button>
+                        {activeShiftId === shift.id && (
+                          <div className="shift-actions" onClick={e => e.stopPropagation()}>
+                            <button className="shift-action-edit" onClick={() => openEditShift(shift)}>Edit</button>
+                            <button className="shift-action-delete" onClick={() => handleDeleteShift(shift.id)}>Delete</button>
+                          </div>
+                        )}
                       </div>
                     ))}
                     <button className="btn-add-shift" onClick={() => openAddShift(dayDate)}>
@@ -240,12 +270,16 @@ export default function AdminDashboard() {
                 <button onClick={nextDay} className="btn-day-nav">›</button>
               </div>
 
-              <div className="mobile-shifts-list">
+              <div className="mobile-shifts-list" onClick={() => setActiveShiftId(null)}>
                 {getShiftsForDay(activeDayDate).length === 0 ? (
                   <div className="mobile-no-shifts">No shifts scheduled</div>
                 ) : (
                   getShiftsForDay(activeDayDate).map(shift => (
-                    <div key={shift.id} className="mobile-shift-card">
+                    <div
+                      key={shift.id}
+                      className={`mobile-shift-card ${activeShiftId === shift.id ? 'mobile-shift-card-active' : ''}`}
+                      onClick={e => { e.stopPropagation(); setActiveShiftId(activeShiftId === shift.id ? null : shift.id); }}
+                    >
                       <div className="mobile-shift-avatar">
                         {shift.userName.charAt(0)}
                       </div>
@@ -253,12 +287,12 @@ export default function AdminDashboard() {
                         <div className="mobile-shift-name">{shift.userName}</div>
                         <div className="mobile-shift-time">{shift.startTime} – {shift.endTime}</div>
                       </div>
-                      <button
-                        className="mobile-shift-delete"
-                        onClick={() => handleDeleteShift(shift.id)}
-                      >
-                        Delete
-                      </button>
+                      {activeShiftId === shift.id && (
+                        <div className="mobile-shift-actions" onClick={e => e.stopPropagation()}>
+                          <button className="mobile-shift-action-edit" onClick={() => openEditShift(shift)}>Edit</button>
+                          <button className="mobile-shift-action-delete" onClick={() => handleDeleteShift(shift.id)}>Delete</button>
+                        </div>
+                      )}
                     </div>
                   ))
                 )}
@@ -277,9 +311,13 @@ export default function AdminDashboard() {
 
       {/* Shared modal */}
       {showModal && (
-        <div className="modal-overlay" onClick={() => setShowModal(false)}>
+        <div className="modal-overlay" onClick={() => { setShowModal(false); setEditingShift(null); }}>
           <div className="modal" onClick={e => e.stopPropagation()}>
-            <h3>Add Shift — {selectedDay && formatDateLabel(selectedDay)}, {selectedDay?.getFullYear()}</h3>
+            <h3>
+              {editingShift
+                ? `Edit Shift — ${editingShift.userName}`
+                : `Add Shift — ${selectedDay && formatDateLabel(selectedDay)}, ${selectedDay?.getFullYear()}`}
+            </h3>
             <form onSubmit={handleAddShift} className="modal-form">
               <div className="form-group">
                 <label>Employee</label>
@@ -300,9 +338,9 @@ export default function AdminDashboard() {
                 </div>
               </div>
               <div className="modal-actions">
-                <button type="button" className="btn-cancel" onClick={() => setShowModal(false)}>Cancel</button>
+                <button type="button" className="btn-cancel" onClick={() => { setShowModal(false); setEditingShift(null); }}>Cancel</button>
                 <button type="submit" className="btn-primary" disabled={saving}>
-                  {saving ? 'Saving...' : 'Add Shift'}
+                  {saving ? 'Saving...' : editingShift ? 'Save Changes' : 'Add Shift'}
                 </button>
               </div>
             </form>
