@@ -8,6 +8,11 @@ body {
   -webkit-font-smoothing: antialiased;
   color: #1a1a2e;
   background: #f1f5f9;
+  overflow-x: hidden;
+}
+
+html {
+  overflow-x: hidden;
 }
 
 h1, h2, h3, h4 {
@@ -28,4 +33,11 @@ input, select, textarea {
 
 a {
   color: #2563eb;
+}
+
+@media (max-width: 768px) {
+  /* Prevent content hiding behind fixed bottom nav */
+  .page {
+    padding-bottom: 70px;
+  }
 }

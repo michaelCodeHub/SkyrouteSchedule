@@ -16,16 +16,19 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  text-decoration: none;
 }
 
 .header-logo {
   font-size: 1.5rem;
+  line-height: 1;
 }
 
 .header-title {
   font-size: 1.2rem;
   font-weight: 700;
   letter-spacing: 0.5px;
+  color: white;
 }
 
 .header-nav {
@@ -43,7 +46,7 @@
   transition: background 0.2s;
 }
 
-.header-nav a:hover, .header-nav a.active {
+.header-nav a:hover {
   background: rgba(255,255,255,0.15);
   color: white;
 }
@@ -80,4 +83,98 @@
 
 .btn-logout:hover {
   background: rgba(255,255,255,0.25);
+}
+
+/* ─── Bottom nav (mobile only) ─── */
+.bottom-nav {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .bottom-nav {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: #1e3a5f;
+    border-top: 1px solid rgba(255,255,255,0.1);
+    z-index: 200;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .bottom-nav-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.2rem;
+    padding: 0.6rem 0;
+    color: rgba(255,255,255,0.55);
+    text-decoration: none;
+    font-size: 0;
+    background: none;
+    border: none;
+    cursor: pointer;
+    transition: color 0.15s, background 0.15s;
+  }
+
+  .bottom-nav-item:hover {
+    background: rgba(255,255,255,0.07);
+    color: rgba(255,255,255,0.9);
+  }
+
+  .bottom-nav-active {
+    color: white !important;
+    background: rgba(255,255,255,0.1);
+    border-top: 2px solid #60a5fa;
+  }
+
+  .bottom-nav-icon {
+    font-size: 1.25rem;
+    line-height: 1;
+  }
+
+  .bottom-nav-label {
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+  }
+
+  .bottom-nav-logout {
+    color: rgba(255,255,255,0.45);
+  }
+}
+
+/* ─── Mobile header ─── */
+@media (max-width: 768px) {
+  .header {
+    padding: 0 1rem;
+    height: 52px;
+  }
+
+  .header-title {
+    font-size: 1rem;
+  }
+
+  .header-logo {
+    font-size: 1.2rem;
+  }
+
+  /* Hide nav links — page-level headers handle navigation on mobile */
+  .header-nav {
+    display: none;
+  }
+
+  /* Hide name and role badge — too cramped */
+  .header-username,
+  .header-role-badge {
+    display: none;
+  }
+
+  .btn-logout {
+    padding: 0.3rem 0.65rem;
+    font-size: 0.8rem;
+  }
 }
