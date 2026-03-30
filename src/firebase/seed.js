@@ -1,6 +1,17 @@
 import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { doc, setDoc, collection, addDoc, getDocs, query, where, serverTimestamp, Timestamp } from 'firebase/firestore';
+import { doc, setDoc, collection, addDoc, getDocs, deleteDoc, query, where, serverTimestamp, Timestamp } from 'firebase/firestore';
 import { auth, db } from './config';
+
+export async function clearAllData() {
+  console.log('Clearing all shifts and attendance...');
+  const collections = ['shifts', 'attendance'];
+  for (const col of collections) {
+    const snap = await getDocs(collection(db, col));
+    await Promise.all(snap.docs.map(d => deleteDoc(doc(db, col, d.id))));
+    console.log(`Cleared ${snap.docs.length} records from ${col}`);
+  }
+  console.log('Clear complete.');
+}
 
 const EMPLOYEE_ACCOUNTS = [
   { email: 'alice@skyrouteco.com', name: 'Alice Johnson' },
@@ -88,14 +99,6 @@ export async function seedData() {
     monday.setDate(currentMonday.getDate() - 7 * weekOffset);
     const weekStr = dateToStr(monday);
 
-    // Check if shifts already exist for this week
-    const existingQ = query(collection(db, 'shifts'), where('weekStart', '==', weekStr));
-    const existingSnap = await getDocs(existingQ);
-    if (!existingSnap.empty) {
-      console.log(`Shifts already exist for week ${weekStr}, skipping.`);
-      continue;
-    }
-
     for (const user of employees) {
       for (const tmpl of shiftTemplates) {
         const shiftDate = new Date(monday);
@@ -125,15 +128,6 @@ export async function seedData() {
       const dateStr = dateToStr(workDate);
 
       for (const user of employees) {
-        // Skip if attendance already exists for this user+date
-        const existingQ = query(
-          collection(db, 'attendance'),
-          where('userId', '==', user.uid),
-          where('date', '==', dateStr)
-        );
-        const existingSnap = await getDocs(existingQ);
-        if (!existingSnap.empty) continue;
-
         const clockInHour = 8 + Math.floor(Math.random() * 2);
         const clockInMin = Math.floor(Math.random() * 30);
         const clockOutHour = 16 + Math.floor(Math.random() * 2);
